@@ -239,12 +239,12 @@ function addButtonsListerner() {
  ********************************/
 
 function shareScore() {
-  var countText
-  if (counter.text == 1) {
-    countText = "1 point"
-  } else {
-    countText = counter.text + " points"
-  }
+  var msg = {
+    "messageType": "SCORE",
+    "score": parseFloat(counter.text)
+  };
+  window.parent.postMessage(msg, "*");
+  console.log("Sent to window parent: " + JSON.stringify(msg, null, 2));
 }
 
 /*********************************
