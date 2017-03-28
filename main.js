@@ -169,7 +169,6 @@ function die() {
 
   // Move the penguin down to the ground
   createjs.Tween.get(penguin).wait(0).to({y:penguin.y + 200, rotation: 90}, (380)/1.5, createjs.Ease.linear) // Rotate back
-  .call(penguin.gotoAndPlay("dive")) // Change penguin to diving position
   .to({y:ground.y - 30}, (h - (penguin.y+200))/1.5, createjs.Ease.linear); // Drop to the bedrock
 
   // Prepare restart button
@@ -362,7 +361,6 @@ function tick(event) {
     .to({y:penguin.y - jumpAmount, rotation: -20}, jumpTime - rotationDelta, createjs.Ease.quadOut) // rotate to jump position and jump penguin
     .to({y:penguin.y}, jumpTime, createjs.Ease.quadIn) // reverse jump for smooth arch
     .to({y:penguin.y + 200, rotation: 90}, (380)/1.5, createjs.Ease.linear) //rotate back
-    .call(penguin.gotoAndPlay("dive")) // change penguin to diving position
     .to({y:ground.y - 30}, (h - (penguin.y+200))/1.5, createjs.Ease.linear); // drop to the bedrock
 
   }
