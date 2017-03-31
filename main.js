@@ -8,6 +8,7 @@
 
 var stage, w, h, loader, pipe1height, pipe2height, pipe3height, startX, startY, wiggleDelta;
 var background, penguin, ground, pipe, bottomPipe, pipes, rotationDelta, counter, counterOutline;
+var double = false;
 var started = false;
 var startJump = false;
 var jumpAmount = 120;
@@ -18,6 +19,8 @@ var gap = 250;
 var masterPipeDelay = 78;
 var pipeDelay = masterPipeDelay;
 var counterShow = false;
+var btnLoadRemoved = false;
+var btnSaveDisplayed = false;
 
 document.onkeydown = handleKeyDown;
 
@@ -42,7 +45,9 @@ function init() {
     { src:"img/ground.png", id:"ground" },
     { src:"img/pipe.png", id:"pipe" },
     { src:"img/restart.png", id:"btnRestart" },
-    { src:"img/share.png", id:"btnShare" }
+    { src:"img/share.png", id:"btnShare" },
+    { src:"img/load.png", id:"btnLoad" },
+    { src:"img/save.png", id:"btnSave" }
   ];
 
   // Loading
@@ -117,6 +122,9 @@ function handleComplete() {
   counterOutline.alpha = 1;
   stage.addChild(counter, counterOutline);
 
+  // Prepare buttons Save and Load
+  prepareButtonsNewGame();
+
   // Ticker configuration
   createjs.Ticker.timingMode = createjs.Ticker.RAF;
   createjs.Ticker.addEventListener("tick", tick);
@@ -143,15 +151,19 @@ function handleKeyDown(e) {
 
 function handleJumpStart() {
   // If the penguin is not dead
-  if (!dead) {
-    // Clean penguin animations
-    createjs.Tween.removeTweens(penguin);
-    // Display jump animation
-    penguin.gotoAndPlay("jump");
-    startJump = true;
-    if(!started) {
-      started = true;
-      counterShow = true;
+  if(!dead) {
+    if(double) {
+      // Clean penguin animations
+      createjs.Tween.removeTweens(penguin);
+      // Display jump animation
+      penguin.gotoAndPlay("jump");
+      startJump = true;
+      if(!started) {
+        started = true;
+        counterShow = true;
+      }
+    } else {
+      double = true;
     }
   }
 }
@@ -162,6 +174,9 @@ function handleJumpStart() {
 
 function die() {
   dead = true;
+
+  // Remove Save button
+  stage.removeChild(btnSave);
 
   // Update animation
   penguin.gotoAndPlay("dive");
@@ -204,13 +219,19 @@ function restartGame() {
   // Refresh variables
   counter.text = 0;
   counterOutline.text = 0;
-  counterOutline.alpha = 0;
-  counter.alpha = 0;
-  counterShow = false;
+  counterOutline.alpha = 1;
+  counter.alpha = 1;
+  counter.show = true;
   pipeDelay = masterPipeDelay;
   dead = false;
   started = false;
   startJump = false;
+  double = false;
+  btnLoadRemoved = false;
+  btnSaveDisplayed = false;
+
+  // Prepare buttons Save and Load
+  prepareButtonsNewGame();
 
   // Prepare pinguin
   createjs.Tween.removeTweens(penguin);
@@ -223,6 +244,56 @@ function restartGame() {
 /*********************************
  * BUTTON MANAGEMENT
  ********************************/
+
+function prepareButtonsNewGame() {
+  // Prepare load and save buttons
+  btnLoad = new createjs.Bitmap(loader.getResult("btnLoad"));
+  btnLoad.alpha = 0;
+  btnLoad.x = w/2 - btnLoad.image.width/2;
+  btnLoad.y = 10;
+  stage.addChild(btnLoad);
+
+  btnSave = new createjs.Bitmap(loader.getResult("btnSave"));
+  btnSave.alpha = 0;
+  btnSave.x = w/2 - btnSave.image.width/2;
+  btnSave.y = 10;
+  stage.addChild(btnSave);
+
+  // Event Load
+  btnLoad.addEventListener("click", function() {
+    var msg = {
+      "messageType": "LOAD_REQUEST",
+    };
+    window.parent.postMessage(msg, "*");
+    console.log("Sent to window parent: " + JSON.stringify(msg, null, 2));
+    btnLoadRemoved = true;
+  });
+
+  // Load response handler
+  window.addEventListener("message", function(evt) {
+    if(evt.data.messageType === "LOAD") {
+      counter.text = evt.data.gameState.score;
+      counterOutline.text = evt.data.gameState.score;
+    } else if (evt.data.messageType === "ERROR") {
+      alert(evt.data.info);
+    }
+  });
+
+  // Event Save
+  btnSave.addEventListener("click", function() {
+    var msg = {
+      "messageType": "SAVE",
+      "gameState": {
+        "score": parseFloat(counter.text)
+      }
+    };
+    window.parent.postMessage(msg, "*");
+    console.log("Sent to window parent: " + JSON.stringify(msg, null, 2));
+  });
+
+  // Apparition Load
+  createjs.Tween.get(btnLoad).to({alpha:1, y: btnLoad.y + 50}, 400, createjs.Ease.sineIn);
+}
 
 function removeButtons() {
   stage.removeChild(btnRestart);
@@ -273,6 +344,17 @@ function tick(event) {
 
   // Game management
   if(started && !dead) {
+
+    // Remove btnLoad if not clicked
+    if(!btnLoadRemoved) {
+      stage.removeChild(btnLoad);
+    }
+    // Display btnSave if not displayed
+    if(!btnSaveDisplayed) {
+      createjs.Tween.get(btnSave).to({alpha:1, y: btnSave.y + 50}, 400, createjs.Ease.sineIn);
+      btnSaveDisplayed = true;
+    }
+
     // Pipe apparitions
     if (pipeDelay == 0) {
       // Create a new pipe and add it
